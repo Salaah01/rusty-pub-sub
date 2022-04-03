@@ -23,7 +23,10 @@ pub struct Client {}
 impl Client {
     /// Checks if a client is already registered.
     fn is_registered(&self, client: &TcpStream) -> bool {
-        CLIENTS.lock().unwrap().contains_key(&get_client_id(client))
+        CLIENTS
+            .lock()
+            .unwrap()
+            .contains_key(&get_client_id(&client))
     }
 
     /// Adds a client to the hashmap of clients.
@@ -85,12 +88,14 @@ impl Subscription {
     /// @param channel The channel to subscribe to.
     ///
     pub fn add_subscription(&self, client: &TcpStream, channel: &String) {
-        let mut subscriptions = SUBSCRIPTIONS.lock().unwrap();
-
         // Check if the a key for the channel already exists. If not create it.
         if !self.is_channel_registered(&channel) {
-            subscriptions.insert(channel.to_string(), HashSet::new());
+            SUBSCRIPTIONS
+                .lock()
+                .unwrap()
+                .insert(channel.to_string(), HashSet::new());
         }
+        let mut subscriptions = SUBSCRIPTIONS.lock().unwrap();
 
         // Add the client to the channel's set of clients.
         subscriptions
@@ -146,9 +151,7 @@ mod client_tests {
 
     /// Helper function to clear the client hashmap.
     fn flush_clients_hashmap() {
-        let mut clients = CLIENTS.lock().unwrap();
-        clients.clear();
-        drop(clients);
+        CLIENTS.lock().unwrap().clear();
     }
 
     /// Test that the `is_registered` function returns false if the client has
@@ -237,7 +240,7 @@ mod subscription_tests {
     #[test]
     fn test_is_channel_registered() {
         flush_subscriptions_hashmap();
-        let channel: String = get_channel(None);
+        let channel: String = get_channel(Some("test_is_channel_registered"));
         SUBSCRIPTIONS
             .lock()
             .unwrap()
@@ -249,11 +252,60 @@ mod subscription_tests {
     /// channel's set of clients.
     #[test]
     fn test_add_subscription() {
+        flush_subscriptions_hashmap();
         let client = get_client();
-        let channel: String = get_channel(None);
-        // flush_subscriptions_hashmap();
+        let channel: String = get_channel(Some("test_add_subscription"));
         Subscription {}.add_subscription(&client, &channel);
         assert!(SUBSCRIPTIONS
+            .lock()
+            .unwrap()
+            .get(&channel)
+            .unwrap()
+            .contains(&get_client_id(&client)));
+    }
+
+    /// Test the `remove_subscription` function where a client is attempting to
+    /// unsubscribe from a channel that does not exist.
+    #[test]
+    fn test_remove_subscription_channel_not_registered() {
+        flush_subscriptions_hashmap();
+        let channel: String = get_channel(Some("test_remove_subscription_channel_not_registered"));
+        Subscription {}.remove_subscription(&get_client(), &channel);
+        assert!(!SUBSCRIPTIONS.lock().unwrap().contains_key(&channel));
+    }
+
+    /// Test the `remove_subscription` function where a client is attempting to
+    /// unsubscribe from a channel that exists but the client is not subscribed
+    /// to the channel.
+    #[test]
+    fn test_remove_unsubscribed_channel() {
+        flush_subscriptions_hashmap();
+        let client = get_client();
+        let channel: String = get_channel(Some("test_remove_unsubscribed_channel"));
+        SUBSCRIPTIONS
+            .lock()
+            .unwrap()
+            .insert(channel.clone(), HashSet::new());
+        Subscription {}.remove_subscription(&client, &channel);
+        assert!(SUBSCRIPTIONS
+            .lock()
+            .unwrap()
+            .get_mut(&channel)
+            .unwrap()
+            .is_empty());
+    }
+
+    /// Test the `remove_subscription` function where a client is attempting to
+    /// unsubscribe from a channel that exists and the client is subscribed to
+    /// the channel.
+    #[test]
+    fn test_remove_subscription() {
+        flush_subscriptions_hashmap();
+        let client = get_client();
+        let channel: String = get_channel(Some("test_remove_unsubscribed"));
+        Subscription {}.add_subscription(&client, &channel);
+        Subscription {}.remove_subscription(&client, &channel);
+        assert!(!SUBSCRIPTIONS
             .lock()
             .unwrap()
             .get(&channel)
