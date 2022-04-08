@@ -21,6 +21,12 @@ fn get_client_id(stream: &TcpStream) -> String {
 pub struct Client {}
 
 impl Client {
+
+    /// Creates an new client instance.
+    pub fn new() -> Client {
+        Client {}
+    }
+
     /// Checks if a client is already registered.
     fn is_registered(&self, client: &TcpStream) -> bool {
         CLIENTS
