@@ -128,10 +128,13 @@ impl Client {
 fn main() {
     let mut client = Client::new("localhost".to_string(), 7878);
     // client.send("Hello, world!".to_string());
-    // client.listen(|message| println!("{}", message));
     client.subscribe("test".to_string());
-    client.subscribe("test2".to_string());
-    client.unsubscribe("test".to_string());
-    // client.publish("test".to_string(), "Hello, world!".to_string());
+    // client.subscribe("test2".to_string());
+    client.publish("test".to_string(), "Helloworld!".to_string());
+    client.listen(|message| println!("got message {}", message));
+    // client.unsubscribe("test".to_string());
+
+    // sleep for few seconds
+    std::thread::sleep(std::time::Duration::from_secs(5));
     client.disconnect();
 }

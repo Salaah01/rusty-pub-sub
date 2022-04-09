@@ -12,10 +12,13 @@ lazy_static! {
     static ref SUBSCRIPTIONS: Mutex<HashMap<String, HashSet<String>>> = Mutex::new(HashMap::new());
 }
 
-/// Get a hash-able string from a TcpStream.
-fn get_client_id(stream: &TcpStream) -> String {
-    let addr = stream.peer_addr().unwrap();
-    format!("{}:{}", addr.ip(), addr.port())
+/// Returns the client memory address.
+/// # Arguments
+/// * `client` - The client to get the address of.
+/// # Returns
+fn get_client_address(stream: &TcpStream) -> String {
+    // get the raw memory address
+    (&*stream as *const TcpStream as usize).to_string()
 }
 
 pub struct Client {}
@@ -31,7 +34,7 @@ impl Client {
         CLIENTS
             .lock()
             .unwrap()
-            .contains_key(&get_client_id(&client))
+            .contains_key(&get_client_address(&client))
     }
 
     /// Adds a client to the hashmap of clients.
@@ -48,7 +51,7 @@ impl Client {
         CLIENTS
             .lock()
             .unwrap()
-            .insert(get_client_id(&client), HashSet::new());
+            .insert(get_client_address(&client), HashSet::new());
     }
 
     /// Removes a client from the hashmap of clients.
@@ -61,7 +64,7 @@ impl Client {
             return;
         }
 
-        let client_id = get_client_id(&stream);
+        let client_id = get_client_address(&stream);
         let mut clients = CLIENTS.lock().unwrap();
 
         // Remove the client from the hashmap
@@ -106,7 +109,7 @@ impl Subscription {
         subscriptions
             .get_mut(channel)
             .unwrap()
-            .insert(get_client_id(&client));
+            .insert(get_client_address(&client));
     }
 
     /// Unsubscribe a client from a channel.
@@ -124,7 +127,19 @@ impl Subscription {
             .unwrap()
             .get_mut(channel)
             .unwrap()
-            .remove(&get_client_id(&client));
+            .remove(&get_client_address(&client));
+    }
+
+    /// Get a list of clients subscribed to a channel.
+    /// # TODO: Handle channels that do not exist.
+    pub fn get_subscribers(&self, channel: &String) -> HashSet<String> {
+        // Check if the channel is in the subscriptions set of channels.
+        if !self.is_channel_registered(&channel) {
+            return HashSet::new();
+        }
+
+        // Get the set of clients subscribed to the channel.
+        SUBSCRIPTIONS.lock().unwrap().get(channel).unwrap().clone()
     }
 }
 
@@ -138,7 +153,7 @@ mod tests {
     #[test]
     fn test_add_client() {
         let client = TcpStream::connect("localhost:8080").unwrap();
-        let client_id = get_client_id(&client);
+        let client_id = get_client_address(&client);
         assert!(client_id.is_ascii());
     }
 }
@@ -187,7 +202,7 @@ mod client_tests {
         assert!(CLIENTS
             .lock()
             .unwrap()
-            .contains_key(&get_client_id(&client)));
+            .contains_key(&get_client_address(&client)));
     }
 
     /// Test the `remove_client` function. It should remove the client from the
@@ -201,7 +216,7 @@ mod client_tests {
         assert!(!CLIENTS
             .lock()
             .unwrap()
-            .contains_key(&get_client_id(&client)));
+            .contains_key(&get_client_address(&client)));
     }
 }
 
@@ -266,7 +281,7 @@ mod subscription_tests {
             .unwrap()
             .get(&channel)
             .unwrap()
-            .contains(&get_client_id(&client)));
+            .contains(&get_client_address(&client)));
     }
 
     /// Test the `remove_subscription` function where a client is attempting to
@@ -315,6 +330,6 @@ mod subscription_tests {
             .unwrap()
             .get(&channel)
             .unwrap()
-            .contains(&get_client_id(&client)));
+            .contains(&get_client_address(&client)));
     }
 }

@@ -56,6 +56,7 @@ pub fn consumer(client: &mut TcpStream) {
                 connected = false;
                 disconnect_handler(&client);
             }
+            "PUBLISH" => publish_handler(&message),
             _ => println!("Unknown command: {}", handler),
         }
         client.flush().unwrap();
@@ -117,4 +118,56 @@ fn unsubscribe_handler(client: &TcpStream, channel: &String) {
 fn disconnect_handler(client: &TcpStream) {
     println!("{} from {}", "DISCONNECT", client.peer_addr().unwrap());
     state::Client {}.remove_client(client);
+}
+
+/// Publishes a messages to all clients subscribed to a channel.
+/// # Arguments
+/// * `channel` - The channel to publish to.
+/// * `message` - The message to publish.
+fn publish_handler(message: &String) {
+    // The message could contain both the channel name and the actual message.
+    // We need to split the message into two parts.
+    let msg_split_point = match message.find(" ") {
+        Some(point) => point,
+        None => {
+            println!("Error: Failed to parse message.");
+            return;
+        }
+    };
+
+    let channel = &message[0..msg_split_point];
+    let message = &message[msg_split_point + 1..];
+
+    let subscribers = state::Subscription {}.get_subscribers(&channel.to_string());
+
+    // If there are no subscribers, we can return early.
+    if subscribers.is_empty() {
+        return;
+    }
+
+    let message_length = format!("{}", message.len()).to_string();
+    let mut msg_size_buffer = [0; 64];
+
+    msg_size_buffer[0..message_length.len()].copy_from_slice(message_length.as_bytes());
+    msg_size_buffer[message_length.len()..]
+        .copy_from_slice(" ".repeat(64 - message_length.len()).as_bytes());
+
+    let msg_bytes = message.as_bytes();
+
+    for subscriber in subscribers {
+        // A subscriber is a memory address, so we need to convert it to a
+        // TcpStream.
+        let stream = subscriber.parse::<usize>().unwrap() as *mut TcpStream;
+        let stream = unsafe { &mut *stream };
+
+        match stream.write(&msg_size_buffer) {
+            Ok(_) => (),
+            Err(e) => {
+                println!("Error: {}", e);
+                return;
+            }
+        };
+        stream.write(msg_bytes).unwrap();
+        println!("Done")
+    }
 }
