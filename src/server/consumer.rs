@@ -1,3 +1,10 @@
+//! # Server Consumers
+//! This library is responsible for handling the communication between the
+//! client and the server.
+//! It contains a `consumer` function that is responsible for listening
+//! handling messages from the client and passing them onto the right function
+//! to handle them.
+
 use super::state;
 use std::{
     io::{BufWriter, Read, Write},
@@ -57,6 +64,7 @@ pub fn consumer(client: &mut TcpStream) {
                 disconnect_handler(&client);
             }
             "PUBLISH" => publish_handler(&message),
+            "PING" => ping_handler(&client),
             _ => println!("Unknown command: {}", handler),
         }
         client.flush().unwrap();
@@ -173,4 +181,20 @@ fn publish_handler(message: &String) {
             Err(_) => state::Subscription {}.remove_subscription(stream, &channel.to_string()),
         };
     }
+}
+
+/// Server ping. Responds with a PONG message.
+/// # Arguments
+/// * `client` - The client to ping.
+fn ping_handler(client: &TcpStream) {
+    println!("Got ping from {}", client.peer_addr().unwrap());
+    let mut writer = BufWriter::new(client);
+    match writer.write_all(b"PONG\n") {
+        Ok(_) => (),
+        Err(_) => println!("WARNING: Failed to write to client."),
+    };
+    match writer.flush() {
+        Ok(_) => (),
+        Err(_) => println!("WARNING: Failed to flush writer."),
+    };
 }

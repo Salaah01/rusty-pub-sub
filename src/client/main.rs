@@ -1,8 +1,18 @@
+//! Client
+//! This binary handles client connections to the server.
+//! It is the main entry point for the client and handles sending and receiving
+//! messages to and from the server.
+
 use std::{
-    io::{BufRead, BufReader, Read, Write},
+    io::{BufRead, BufReader, Write},
     net::TcpStream,
 };
 
+/// Represents a client connected to the server.
+/// # Arguments
+/// * `host` - The hostname of the client.
+/// * `port` - The port of the client.
+/// * `connection` - The TCP connection to the client.
 struct Client {
     host: String,
     port: u16,
@@ -11,6 +21,11 @@ struct Client {
 
 impl Client {
     /// Creates a new client instance and connects to the server.
+    /// # Arguments
+    /// * `host` - The hostname of the client.
+    /// * `port` - The port of the client.
+    /// # Returns
+    /// A new client instance.
     fn new(host: String, port: u16) -> Client {
         let mut client = Client {
             host,
@@ -33,6 +48,17 @@ impl Client {
     /// Disconnects from the server.
     fn disconnect(&mut self) {
         self.send(format!("DISCONNECT").as_str().to_string());
+    }
+
+    /// Pings the server
+    fn ping(&mut self) {
+        self.send(format!("PING").as_str().to_string());
+        let mut buffer = String::new();
+        let mut reader = BufReader::new(self.connection.as_mut().unwrap());
+        reader.read_line(&mut buffer).unwrap();
+        if buffer.trim() != "PONG" {
+            panic!("Failed to receive PONG reply.");
+        }
     }
 
     /// Sends a message to the server.
@@ -131,16 +157,15 @@ impl Client {
 fn main() {
     let mut client = Client::new("localhost".to_string(), 7878);
     // client.send("Hello, world!".to_string());
+    client.ping();
     client.subscribe("test".to_string());
     // client.receive(|message| print!("got single message {}", message));
     // client.unsubscribe("test".to_string());
 
     // client.subscribe("test2".to_string());
-    client.publish("test".to_string(), "Helloworld!\n".to_string());
+    client.publish("test".to_string(), "Hello world!\n".to_string());
     client.listen(|message| println!("got message {}", message));
     // client.unsubscribe("test".to_string());
 
-    // sleep for few seconds
-    // std::thread::sleep(std::time::Duration::from_secs(5));
     client.disconnect();
 }

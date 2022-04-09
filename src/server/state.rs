@@ -1,5 +1,9 @@
+//! # Server State Management
+//! This library contains the state management for the server.
+//! This includes managing the clients connected to the server and their
+//! subscriptions.
+
 use lazy_static::lazy_static;
-/// Contains a hashmap of the clients and their subscriptions.
 use std::collections::{HashMap, HashSet};
 use std::net::TcpStream;
 use std::sync::Mutex;
@@ -16,11 +20,13 @@ lazy_static! {
 /// # Arguments
 /// * `client` - The client to get the address of.
 /// # Returns
+/// The memory address of the client.
 fn get_client_address(stream: &TcpStream) -> String {
     // get the raw memory address
     (&*stream as *const TcpStream as usize).to_string()
 }
 
+/// Manages the clients.
 pub struct Client {}
 
 impl Client {
@@ -38,9 +44,8 @@ impl Client {
     }
 
     /// Adds a client to the hashmap of clients.
-    ///
-    /// @param client The client to add.
-    ///
+    /// # Arguments
+    /// - `client` - The client to add to the collection of connected clients.
     pub fn add_client(&self, client: &TcpStream) {
         // Check if the client is already in the hashmap
         if self.is_registered(&client) {
@@ -55,8 +60,9 @@ impl Client {
     }
 
     /// Removes a client from the hashmap of clients.
-    ///
-    /// @param client The client to remove.
+    /// # Arguments
+    /// - `client` - The client to remove from the collection of connected
+    ///     clients.
     ///
     pub fn remove_client(&self, stream: &TcpStream) {
         // Check if the client is in the hashmap (this is unsafe)
@@ -81,20 +87,21 @@ impl Client {
     }
 }
 
+/// Manages the subscriptions.
 pub struct Subscription {}
 
 impl Subscription {
     /// Checks if a subscription is already registered.
-    /// @param channel The channel to check.
-    ///
+    /// # Arguments
+    /// - `channel` - The channel to check.
     fn is_channel_registered(&self, channel: &String) -> bool {
         SUBSCRIPTIONS.lock().unwrap().contains_key(channel)
     }
 
     /// Subscribe a client to a channel.
-    /// @param client The client to subscribe.
-    /// @param channel The channel to subscribe to.
-    ///
+    /// # Arguments
+    /// - `client` - The client to subscribe.
+    /// - `channel` - The channel to subscribe to.
     pub fn add_subscription(&self, client: &TcpStream, channel: &String) {
         // Check if the a key for the channel already exists. If not create it.
         if !self.is_channel_registered(&channel) {
@@ -113,8 +120,9 @@ impl Subscription {
     }
 
     /// Unsubscribe a client from a channel.
-    /// @param client The client to unsubscribe.
-    /// @param channel The channel to unsubscribe from.
+    /// # Arguments
+    /// - `client` The client to unsubscribe.
+    /// - `channel` The channel to unsubscribe from.
     pub fn remove_subscription(&self, client: &TcpStream, channel: &String) {
         // Check if the channel is in the subscriptions set of channels.
         if !self.is_channel_registered(&channel) {

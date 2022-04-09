@@ -1,7 +1,12 @@
+//! # Server
+//! This binary listens for connections and handle messages to and from the
+//! client.
+//! It is the main entry point for the server and is ultimately responsible for
+//! facilitating the communication between the client and the server.
+
 use server::{consumer, state};
-use std::io::BufWriter;
 use std::thread;
-use std::{io::Write, net::TcpListener};
+use std::{net::TcpListener};
 
 struct Server {
     listener: TcpListener,
