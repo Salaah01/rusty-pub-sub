@@ -1,6 +1,6 @@
 use super::state;
 use std::{
-    io::{Read, Write},
+    io::{BufWriter, Read, Write},
     net::TcpStream,
 };
 
@@ -160,14 +160,17 @@ fn publish_handler(message: &String) {
         let stream = subscriber.parse::<usize>().unwrap() as *mut TcpStream;
         let stream = unsafe { &mut *stream };
 
-        match stream.write(&msg_size_buffer) {
+        let mut writer = BufWriter::new(&*stream);
+
+        match writer.write_all(msg_bytes) {
             Ok(_) => (),
-            Err(e) => {
-                println!("Error: {}", e);
-                return;
-            }
+            Err(_) => state::Subscription {}.remove_subscription(stream, &channel.to_string()),
         };
-        stream.write(msg_bytes).unwrap();
-        println!("Done")
+
+        // Flush and close the stream.
+        match writer.flush() {
+            Ok(_) => (),
+            Err(_) => state::Subscription {}.remove_subscription(stream, &channel.to_string()),
+        };
     }
 }

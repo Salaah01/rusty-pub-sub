@@ -1,5 +1,8 @@
 use server::{consumer, state};
+use std::io::BufWriter;
+use std::thread;
 use std::{io::Write, net::TcpListener};
+
 struct Server {
     listener: TcpListener,
 }
@@ -16,7 +19,9 @@ impl Server {
                 Ok(mut stream) => {
                     client.add_client(&stream);
                     println!("New client connected");
-                    consumer::consumer(&mut stream);
+                    thread::spawn(move || {
+                        consumer::consumer(&mut stream);
+                    });
                 }
                 Err(e) => {
                     println!("Error: {}", e);

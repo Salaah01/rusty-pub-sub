@@ -1,5 +1,5 @@
 use std::{
-    io::{Read, Write},
+    io::{BufRead, BufReader, Read, Write},
     net::TcpStream,
 };
 
@@ -45,7 +45,6 @@ impl Client {
 
         // The server expects an initial message with the length of the message.
         let message_length = message.len().to_string();
-        println!("Message length: {}, Message: {}", message_length, message);
         let mut buffer = [0; 64];
 
         // Add the message to the buffer and pad it with spaces.
@@ -61,16 +60,18 @@ impl Client {
     }
 
     /// Receives a message from the server.
+    /// # Arguments
+    /// * `callback` - The callback to call when a message is received.
     /// # Returns
     /// * `String` - The message received from the server.
-    fn receive(&mut self) -> String {
+    fn receive(&mut self, callback: fn(&String)) {
         let mut buffer = String::new();
-        self.connection
-            .as_mut()
-            .unwrap()
-            .read_to_string(&mut buffer)
-            .unwrap();
-        buffer
+        let conn = self.connection.as_mut().unwrap();
+        let mut reader = BufReader::new(conn);
+        reader.read_line(&mut buffer).unwrap();
+        buffer.pop();
+        callback(&buffer);
+        buffer.clear();
     }
 
     /// Subscribes to a channel.
@@ -113,13 +114,15 @@ impl Client {
     /// This function will listen forever until the client is disconnected.
     fn listen(&mut self, callback: fn(&String)) {
         let mut buffer = String::new();
+        let conn = self.connection.as_mut().unwrap();
+        let mut reader = BufReader::new(conn);
         loop {
-            self.connection
-                .as_mut()
-                .unwrap()
-                .read_to_string(&mut buffer)
-                .unwrap();
-            callback(&buffer);
+            reader.read_line(&mut buffer).unwrap();
+            if buffer.len() > 0 {
+                // Remove the newline character.
+                buffer.pop();
+                callback(&buffer);
+            }
             buffer.clear();
         }
     }
@@ -129,12 +132,15 @@ fn main() {
     let mut client = Client::new("localhost".to_string(), 7878);
     // client.send("Hello, world!".to_string());
     client.subscribe("test".to_string());
+    // client.receive(|message| print!("got single message {}", message));
+    // client.unsubscribe("test".to_string());
+
     // client.subscribe("test2".to_string());
-    client.publish("test".to_string(), "Helloworld!".to_string());
+    client.publish("test".to_string(), "Helloworld!\n".to_string());
     client.listen(|message| println!("got message {}", message));
     // client.unsubscribe("test".to_string());
 
     // sleep for few seconds
-    std::thread::sleep(std::time::Duration::from_secs(5));
+    // std::thread::sleep(std::time::Duration::from_secs(5));
     client.disconnect();
 }
