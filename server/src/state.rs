@@ -22,7 +22,6 @@ lazy_static! {
 /// # Returns
 /// The memory address of the client.
 fn get_client_address(stream: &TcpStream) -> String {
-    // get the raw memory address
     (&*stream as *const TcpStream as usize).to_string()
 }
 
