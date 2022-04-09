@@ -21,7 +21,6 @@ fn get_client_id(stream: &TcpStream) -> String {
 pub struct Client {}
 
 impl Client {
-
     /// Creates an new client instance.
     pub fn new() -> Client {
         Client {}

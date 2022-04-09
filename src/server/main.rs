@@ -1,5 +1,5 @@
-use server::state;
-use std::net::TcpListener;
+use server::{consumer, state};
+use std::{io::Write, net::TcpListener};
 struct Server {
     listener: TcpListener,
 }
@@ -13,9 +13,10 @@ impl Server {
         for stream in self.listener.incoming() {
             let client = state::Client::new();
             match stream {
-                Ok(stream) => {
+                Ok(mut stream) => {
                     client.add_client(&stream);
                     println!("New client connected");
+                    consumer::consumer(&mut stream);
                 }
                 Err(e) => {
                     println!("Error: {}", e);
