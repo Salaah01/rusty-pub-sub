@@ -115,9 +115,12 @@ impl Parser<'_> {
             println!("{}", line);
 
             match line.to_uppercase().as_str() {
-                "DISCONNECT" | "RECV" | "RECEIVE" | "EXIT" | "CLOSE" | "QUIT" => {
+                "DISCONNECT" | "EXIT" | "CLOSE" | "QUIT" => {
                     self.client.disconnect();
                     break;
+                }
+                "RECV" | "RECEIVE" => {
+                    self.handle_receiving(true);
                 }
                 "HELP" => {
                     println!("\nUSAGE:\n\t[COMMAND] [OPTIONS]\n");
