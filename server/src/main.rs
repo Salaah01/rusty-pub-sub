@@ -50,5 +50,6 @@ fn main() {
     let listener: TcpListener =
         TcpListener::bind(format!("{}:{}", host, port)).expect("Could not bind to port");
     let server = Server::new(listener);
+    println!("Listening on {}:{}", host, port);
     server.run();
 }

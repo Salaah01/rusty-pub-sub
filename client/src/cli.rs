@@ -1,6 +1,8 @@
 //! Client CLI
 //! The CLI for interacting with the client.
 
+use std::io::Write;
+
 use crate::client::Client;
 use structopt::StructOpt;
 
@@ -12,8 +14,12 @@ pub struct Options {
     pub host: String,
 
     /// The port of the server.
-    #[structopt(short, long, default_value = "8080")]
+    #[structopt(short, long, default_value = "7878")]
     pub port: u16,
+
+    // Interactive mode
+    #[structopt(short, long)]
+    pub interactive: bool,
 
     /// Ping the server
     #[structopt(long)]
@@ -85,11 +91,44 @@ impl Parser<'_> {
     /// Parses the user's input and calls the appropriate methods on the
     /// client.
     pub fn parse_args(&mut self) {
+        self.handle_interactive();
         self.handle_ping();
         self.handle_subscriptions();
         self.handle_messages();
-        self.handle_listening();
-        self.handle_receiving();
+        self.handle_listening(false);
+        self.handle_receiving(false);
+    }
+
+    /// Interactive mode.
+    fn handle_interactive(&mut self) {
+        loop {
+            let mut line = String::new();
+            print!("rusty-pub-sub> {}", line);
+            std::io::stdout().flush().unwrap();
+            std::io::stdin().read_line(&mut line).unwrap();
+            let line = line.trim().to_string();
+
+            // if empty line, continue
+            if line.is_empty() {
+                continue;
+            }
+            println!("{}", line);
+
+            match line.to_uppercase().as_str() {
+                "DISCONNECT" | "RECV" | "RECEIVE" | "EXIT" | "CLOSE" | "QUIT" => {
+                    self.client.disconnect();
+                    break;
+                }
+                "LISTEN" => self.handle_listening(true),
+                _ => {
+                    let mut msg = line;
+                    if msg.to_uppercase().starts_with("PUBLISH") {
+                        msg.push_str("\n");
+                    }
+                    self.client.send(msg);
+                }
+            };
+        }
     }
 
     /// Pings the server.
@@ -124,8 +163,7 @@ impl Parser<'_> {
                 // "\n" is added to the end of the message to make it easier to
                 // allow the clients know that the message is complete.
                 msg.push_str("\n");
-                self.client
-                    .publish(channel.to_string(), msg.to_string());
+                self.client.publish(channel.to_string(), msg.to_string());
             } else {
                 self.client.send(message.to_string());
             }
@@ -134,16 +172,16 @@ impl Parser<'_> {
 
     // Handles continuous listening for messages. All messages will be printed
     // to the stdout.
-    fn handle_listening(&mut self) {
-        if self.options.listen {
+    fn handle_listening(&mut self, force_true: bool) {
+        if self.options.listen || force_true {
             self.client.listen(|message| println!("{}", message));
         }
     }
 
     // Handles receiving messages. If the user specified the `recv` option,
     // then the client will listen for messages and print them to the console.
-    fn handle_receiving(&mut self) {
-        if self.options.recv {
+    fn handle_receiving(&mut self, force_true: bool) {
+        if self.options.recv || force_true {
             self.client.receive(|message| println!("{}", message));
         }
     }
