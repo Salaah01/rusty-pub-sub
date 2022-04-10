@@ -120,9 +120,12 @@ impl Parser<'_> {
     fn handle_messages(&mut self) {
         if let Some(message) = &self.options.message {
             if let Some(channel) = &self.options.channel {
-                println!("Sending message to channel {}: {}", channel, message);
+                let mut msg = message.to_string();
+                // "\n" is added to the end of the message to make it easier to
+                // allow the clients know that the message is complete.
+                msg.push_str("\n");
                 self.client
-                    .publish(channel.to_string(), message.to_string());
+                    .publish(channel.to_string(), msg.to_string());
             } else {
                 self.client.send(message.to_string());
             }
