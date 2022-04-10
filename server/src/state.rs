@@ -35,7 +35,7 @@ impl Client {
     }
 
     /// Checks if a client is already registered.
-    fn is_registered(&self, client: &TcpStream) -> bool {
+    pub fn is_registered(&self, client: &TcpStream) -> bool {
         CLIENTS
             .lock()
             .unwrap()
@@ -148,6 +148,27 @@ impl Subscription {
         // Get the set of clients subscribed to the channel.
         SUBSCRIPTIONS.lock().unwrap().get(channel).unwrap().clone()
     }
+
+    /// Checks if a client is subscribed to a channel.
+    /// # Arguments
+    /// - `client` - The client to check.
+    /// - `channel` - The channel to check.
+    /// # Returns
+    /// True if the client is subscribed to the channel, false otherwise.
+    pub fn is_subscribed(&self, client: &TcpStream, channel: &String) -> bool {
+        // Check if the channel is in the subscriptions set of channels.
+        if !self.is_channel_registered(&channel) {
+            return false;
+        }
+
+        // Check if the client is subscribed to the channel.
+        SUBSCRIPTIONS
+            .lock()
+            .unwrap()
+            .get(channel)
+            .unwrap()
+            .contains(&get_client_address(&client))
+    }
 }
 
 /// Unit tests
@@ -227,7 +248,7 @@ mod client_tests {
     }
 }
 
-/// Subscription specific tests
+/// Subscription specific unit tests
 #[cfg(test)]
 mod subscription_tests {
     use super::*;
@@ -338,5 +359,51 @@ mod subscription_tests {
             .get(&channel)
             .unwrap()
             .contains(&get_client_address(&client)));
+    }
+
+    /// Test that the `is_subscribed` function returns false if the client has
+    /// not subscribed to the channel where the channel itself has not been
+    /// registered.
+    #[test]
+    fn test_is_not_subscribed_unregistered_channel() {
+        flush_subscriptions_hashmap();
+        let client = get_client();
+        let channel: String = get_channel(Some("test_is_not_subscribed"));
+        assert!(!Subscription {}.is_subscribed(&client, &channel));
+    }
+
+    /// Test that the `is_subscribed` function returns false if the client has
+    /// not subscribed to the channel where the channel has been registered but
+    /// the client has not subscribed to the channel.
+    #[test]
+    fn test_is_not_subscribed() {
+        flush_subscriptions_hashmap();
+        let client = get_client();
+        let channel: String = get_channel(Some("test_is_not_subscribed"));
+        SUBSCRIPTIONS
+            .lock()
+            .unwrap()
+            .insert(channel.clone(), HashSet::new());
+        assert!(!Subscription {}.is_subscribed(&client, &channel));
+    }
+
+    /// Test that the `is_subscribed` function returns true if the client has
+    /// subscribed to the channel.
+    #[test]
+    fn test_is_subscribed() {
+        flush_subscriptions_hashmap();
+        let client = get_client();
+        let channel: String = get_channel(Some("test_is_subscribed"));
+        SUBSCRIPTIONS
+            .lock()
+            .unwrap()
+            .insert(channel.clone(), HashSet::new());
+        SUBSCRIPTIONS
+            .lock()
+            .unwrap()
+            .get_mut(&channel)
+            .unwrap()
+            .insert(get_client_address(&client).clone());
+        assert!(Subscription {}.is_subscribed(&client, &channel));
     }
 }

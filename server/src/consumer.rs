@@ -198,3 +198,85 @@ fn ping_handler(client: &TcpStream) {
         Err(_) => println!("WARNING: Failed to flush writer."),
     };
 }
+
+/// Unit tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::{TcpListener, TcpStream};
+
+    /// Helper function to create a client (`TcpStream`).
+    fn get_client() -> TcpStream {
+        TcpStream::connect("localhost:8080").unwrap()
+    }
+
+    /// Test that the function is able to split a message into it's components.
+    #[test]
+    fn test_get_message_components() {
+        let [method, message] = get_message_components("SUBSCRIBE test");
+        assert_eq!(method, "SUBSCRIBE");
+        assert_eq!(message, "test");
+    }
+
+    /// Test that the function is able to split a message into multiple
+    /// components even when the message has spaces in it.
+    #[test]
+    fn test_get_message_components_multi_space() {
+        let [method, message] = get_message_components("SUBSCRIBE test channel");
+        assert_eq!(method, "SUBSCRIBE");
+        assert_eq!(message, "test channel");
+    }
+
+    /// Test that the function is able to correctly identify an empty buffer.
+    #[test]
+    fn test_is_buffer_empty_true() {
+        let buffer = [0; 64];
+        assert!(is_buffer_empty(&buffer));
+    }
+
+    /// Test that the function is able to correctly identify a non-empty
+    /// buffer.
+    #[test]
+    fn test_is_buffer_empty_false() {
+        let mut buffer = [0; 64];
+        buffer[0] = 1;
+        assert!(!is_buffer_empty(&buffer));
+    }
+
+    /// Test that the function is able to clear a buffer.
+    #[test]
+    fn test_clear_buffer() {
+        let mut buffer = [0; 64];
+        buffer[0] = 1;
+        clear_buffer(&mut buffer);
+        assert!(buffer.iter().all(|&x| x == 0));
+    }
+
+    /// Test that the function is to subscribe a client to a channel.
+    #[test]
+    fn test_subscribe_handler() {
+        let client = get_client();
+        let channel = "test".to_string();
+        subscribe_handler(&client, &channel);
+        assert!(state::Subscription {}.is_subscribed(&client, &channel));
+    }
+
+    /// Test that the function is to unsubscribe a client from a channel.
+    #[test]
+    fn test_unsubscribe_handler() {
+        let client = get_client();
+        let channel = "test".to_string();
+        state::Subscription {}.add_subscription(&client, &channel);
+        unsubscribe_handler(&client, &channel);
+        assert!(!state::Subscription {}.is_subscribed(&client, &channel));
+    }
+
+    /// Test that the function is to disconnect a client.
+    #[test]
+    fn test_disconnect_handler() {
+        let client = get_client();
+        state::Client {}.add_client(&client);
+        disconnect_handler(&client);
+        assert!(!state::Client {}.is_registered(&client));
+    }
+}
