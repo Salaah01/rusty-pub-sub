@@ -5,8 +5,8 @@
 //! facilitating the communication between the client and the server.
 
 use server::{consumer, state};
+use std::net::TcpListener;
 use std::thread;
-use std::{net::TcpListener};
 
 struct Server {
     listener: TcpListener,
@@ -37,7 +37,18 @@ impl Server {
 }
 
 fn main() {
-    let listener: TcpListener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    // Get host and port from command line arguments or use defaults
+    let args: Vec<String> = std::env::args().collect();
+
+    let host = if args.len() > 1 {
+        &args[1]
+    } else {
+        "localhost"
+    };
+    let port = if args.len() > 2 { &args[2] } else { "7878" };
+
+    let listener: TcpListener =
+        TcpListener::bind(format!("{}:{}", host, port)).expect("Could not bind to port");
     let server = Server::new(listener);
     server.run();
 }
