@@ -1,4 +1,7 @@
 # Rusty Pub-Sub
+
+![Example](example/example.gif)
+
 A simple pub-sub implementation in Rust.
 
 Data will be stored in memory and so will be lost if the program is terminated.
