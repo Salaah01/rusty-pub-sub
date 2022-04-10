@@ -10,11 +10,11 @@ use structopt::StructOpt;
 #[structopt(name = "client")]
 pub struct Options {
     /// The hostname of the server
-    #[structopt(short="H", long, default_value = "localhost")]
+    #[structopt(short = "H", long, default_value = "localhost")]
     pub host: String,
 
     /// The port of the server
-    #[structopt(short="P", long, default_value = "7878")]
+    #[structopt(short = "P", long, default_value = "7878")]
     pub port: u16,
 
     /// Interactive mode
@@ -59,12 +59,25 @@ impl Options {
     /// # Panics
     /// An error if the command line arguments are invalid.
     pub fn new() -> Options {
-        let opts = Options::from_args();
+        let mut opts = Options::from_args();
 
         // If there is a channel defined but no message, then panic.
         if opts.channel.is_some() && opts.message.is_none() {
             panic!("You must specify a message to send when using a channel.");
         }
+
+        // If no options are set, then set the interactive flag to true.
+        if !opts.ping
+            && opts.subscribe.is_empty()
+            && opts.unsubscribe.is_empty()
+            && !opts.channel.is_some()
+            && !opts.message.is_some()
+            && !opts.recv
+            && !opts.listen
+        {
+            opts.interactive = true;
+        }
+
         opts
     }
 }
@@ -101,6 +114,9 @@ impl Parser<'_> {
 
     /// Interactive mode.
     fn handle_interactive(&mut self) {
+        if !self.options.interactive {
+            return;
+        }
         loop {
             let mut line = String::new();
             print!("rusty-pub-sub> {}", line);
