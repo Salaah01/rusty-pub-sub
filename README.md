@@ -57,9 +57,9 @@ To start the client in interactive mode run:
 
 | OS | Command |
 | --- | -- |
-| Linux | `./client -i` |
-| Windows | `client.exe -i` |
-| OS Independent (using Cargo) | `cargo run --bin client -- -i` |
+| Linux | `./client` |
+| Windows | `client.exe` |
+| OS Independent (using Cargo) | `cargo run --bin client` |
 
 Below is the usage for the client in interactive mode:
 ```
