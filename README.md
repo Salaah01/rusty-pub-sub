@@ -76,3 +76,10 @@ SEND [message]                   Publishes a message to the server
 RECV                             Receives a message from the server
 LISTEN
 ```
+
+## Testing
+To test the server, ensure that something is running on port 8080 that is accepting connections. This is needed to test sending messages from a `TcpStream` (client).
+Then run:
+```
+cargo test
+```
