@@ -1,4 +1,4 @@
-# Rusty Pub-Sub (In Development)
+# Rusty Pub-Sub
 A simple pub-sub implementation in Rust.
 
 Data will be stored in memory and so will be lost if the program is terminated.
@@ -23,27 +23,53 @@ server [host (default=localhost)] [port (default=7878)]
 
 ## Client
 The client is a simple TCP client that connects to a server and sends/receives data.
-At present, the client automatically disconnects after sending data.
-Alternatively, a client can be used to listen for messages.
+Below is the usage for the client:
 
 ```
 USAGE:
     client [FLAGS] [OPTIONS]
 
 FLAGS:
-    -h, --help       Prints help information
-    -l, --listen     Listens continuously for messages from the server
-        --ping       Ping the server
-        --recv       Waits to receive a message from the server
-    -V, --version    Prints version information
+    -h, --help           Prints help information
+    -i, --interactive    Interactive mode
+    -l, --listen         Listens continuously for messages from the server
+    -p, --ping           Ping the server
+    -r, --recv           Waits to receive a message from the server
+    -V, --version        Prints version information
 
 OPTIONS:
-    -c, --channel <channel>         Channel on which to send a message. If not
-                                    specified, the message will be sent to
+    -c, --channel <channel>         Channel on which to send a message. If not specified, the message will be sent to
                                     the server without a channel specified
-        --host <host>               The hostname of the server [default: localhost]
+    -H, --host <host>               The hostname of the server [default: localhost]
     -m, --msg <message>             Sends a message to the server
-    -p, --port <port>               The port of the server [default: 8080]
+    -P, --port <port>               The port of the server [default: 7878]
     -s, --sub <subscribe>...        Channel to subscribe to
-        --unsub <unsubscribe>...    Channel to unsubscribe from
+    -u, --unsub <unsubscribe>...    Channel to unsubscribe from
+```
+
+## Client Interactive Mode
+The client can be run in interactive mode. This will allow the user to stay connected and continue to send messages. This is faster than sending messages one at a time using the cli `-m` command.
+
+To start the client in interactive mode run:
+
+| OS | Command |
+| --- | -- |
+| Linux | `./client -i` |
+| Windows | `client.exe -i` |
+| OS Independent (using Cargo) | `cargo run --bin client -- -i` |
+
+Below is the usage for the client in interactive mode:
+```
+USAGE:
+        [COMMAND] [OPTIONS]
+
+HELP                             Shows this message
+EXIT                             Exits program
+PING                             Pings the server
+SUBSCRIBE [channel]              Subscribes to a channel
+UNSUBSCRIBE [channel]            Unsubscribes from a channel
+PUBLISH [channel] [message]      Publishes a message to a channel
+SEND [message]                   Publishes a message to the server
+RECV                             Receives a message from the server
+LISTEN
 ```

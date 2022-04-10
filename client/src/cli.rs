@@ -9,20 +9,20 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "client")]
 pub struct Options {
-    /// The hostname of the server.
-    #[structopt(long, default_value = "localhost")]
+    /// The hostname of the server
+    #[structopt(short="H", long, default_value = "localhost")]
     pub host: String,
 
-    /// The port of the server.
-    #[structopt(short, long, default_value = "7878")]
+    /// The port of the server
+    #[structopt(short="P", long, default_value = "7878")]
     pub port: u16,
 
-    // Interactive mode
+    /// Interactive mode
     #[structopt(short, long)]
     pub interactive: bool,
 
     /// Ping the server
-    #[structopt(long)]
+    #[structopt(short, long)]
     pub ping: bool,
 
     /// Channel to subscribe to
@@ -30,7 +30,7 @@ pub struct Options {
     pub subscribe: Vec<String>,
 
     /// Channel to unsubscribe from
-    #[structopt(long, long = "unsub")]
+    #[structopt(short, long = "unsub")]
     pub unsubscribe: Vec<String>,
 
     /// Channel on which to send a message. If not specified, the message will
@@ -43,7 +43,7 @@ pub struct Options {
     pub message: Option<String>,
 
     /// Waits to receive a message from the server
-    #[structopt(long = "recv")]
+    #[structopt(short, long = "recv")]
     pub recv: bool,
 
     /// Listens continuously for messages from the server
@@ -118,6 +118,18 @@ impl Parser<'_> {
                 "DISCONNECT" | "RECV" | "RECEIVE" | "EXIT" | "CLOSE" | "QUIT" => {
                     self.client.disconnect();
                     break;
+                }
+                "HELP" => {
+                    println!("\nUSAGE:\n\t[COMMAND] [OPTIONS]\n");
+                    println!("HELP\t\t\t\t Shows this message");
+                    println!("EXIT\t\t\t\t Exits program",);
+                    println!("PING\t\t\t\t Pings the server");
+                    println!("SUBSCRIBE [channel]\t\t Subscribes to a channel");
+                    println!("UNSUBSCRIBE [channel]\t\t Unsubscribes from a channel");
+                    println!("PUBLISH [channel] [message]\t Publishes a message to a channel");
+                    println!("SEND [message]\t\t\t Publishes a message to the server");
+                    println!("RECV\t\t\t\t Receives a message from the server");
+                    println!("LISTEN\t\t\t\t Listens for messages from the server");
                 }
                 "LISTEN" => self.handle_listening(true),
                 _ => {
