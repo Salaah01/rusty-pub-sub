@@ -203,7 +203,7 @@ fn ping_handler(client: &TcpStream) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::{TcpListener, TcpStream};
+    use std::net::TcpStream;
 
     /// Helper function to create a client (`TcpStream`).
     fn get_client() -> TcpStream {
